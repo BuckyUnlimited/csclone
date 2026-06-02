@@ -1,0 +1,22 @@
+services:
+  laravel-service:
+    container_name: laravel-container
+    build:
+      context: .
+      dockerfile: docker/laravel/Dockerfile
+    working_dir: /var/www/html
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./laravel-app:/var/www/html
+
+  vuejs-service:
+    container_name: vuejs-container
+    build:
+      context: .
+      dockerfile: docker/vuejs/Dockerfile
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./vuejs-app:/app
