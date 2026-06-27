@@ -1,7 +1,7 @@
 set -e
 
-composer install
-wait $!
+# composer install
+# wait $!
 php artisan key:generate
 wait $!
 php artisan migrate
