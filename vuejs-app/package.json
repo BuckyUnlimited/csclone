@@ -9,12 +9,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^5.15.4",
+    "admin-lte": "^3.2.0",
+    "bootstrap": "^4.6.2",
+    "icheck-bootstrap": "^3.0.1",
     "pinia": "^3.0.4",
     "vue": "^3.5.38",
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.7",
+    "husky": "^9.1.7",
     "vite": "^8.0.16",
     "vite-plugin-vue-devtools": "^8.1.2"
   },
