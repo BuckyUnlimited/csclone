@@ -11,9 +11,12 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.15.4",
     "admin-lte": "^3.2.0",
+    "axios": "^1.18.1",
     "bootstrap": "^4.6.2",
     "icheck-bootstrap": "^3.0.1",
     "pinia": "^3.0.4",
+    "pinia-plugin-persistedstate": "^4.7.1",
+    "sweetalert2": "^11.26.25",
     "vue": "^3.5.38",
     "vue-router": "^5.1.0"
   },
