@@ -12,7 +12,20 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    hmr: {
+      protocol: 'ws',
+      port: 5173,
+    },
+    watch: {
+      usePolling: true,
+      useFsEvents: true,
+      interval: 1000,
+    }
+  }
 })
