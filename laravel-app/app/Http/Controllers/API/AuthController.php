@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\User\SigninRequest;
+use App\Http\Requests\User\SignupRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -10,14 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    function signup(Request $request)
+    function signup(SignupRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:100',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6|max:10|confirmed'
-        ]);
-
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -30,13 +26,8 @@ class AuthController extends Controller
         ], 201);
     }
 
-    function signin(Request $request)
+    function signin(SigninRequest $request)
     {
-        $request->validate([
-            'email' => 'required|email|exists:users,email',
-            'password' => 'required|string|min:6|max:10'
-        ]);
-
         $user = User::where('email', $request->email)->first();
 
         if (!Hash::check($request->password, $user->password)) {
