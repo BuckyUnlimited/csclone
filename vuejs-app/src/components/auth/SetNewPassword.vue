@@ -6,23 +6,11 @@
           <router-link to="/" class="h1"><b>Admin</b>LTE</router-link>
         </div>
         <div class="card-body">
-          <p class="login-box-msg">Sign in to start your session</p>
-          <form @submit.prevent="signIn">
+          <p class="login-box-msg">Enter your new password</p>
+          <form @submit.prevent="setNewPassword">
             <div class="input-group mb-3">
-              <input type="email" v-model="user.email" class="form-control" placeholder="Email"
-                :class="{ 'is-invalid': !!userError.email }" />
-              <div class="input-group-append">
-                <div class="input-group-text">
-                  <span class="fas fa-envelope"></span>
-                </div>
-              </div>
-              <div class="invalid-feedback">
-                {{ userError.email }}
-              </div>
-            </div>
-            <div class="input-group mb-3">
-              <input type="password" v-model="user.password" class="form-control" placeholder="Password" autocomplete
-                :class="{ 'is-invalid': !!userError.password }" />
+              <input v-model="user.password" type="password" class="form-control"
+                :class="{ 'is-invalid': !!userError.password }" placeholder="Password" autocomplete />
               <div class="input-group-append">
                 <div class="input-group-text">
                   <span class="fas fa-lock"></span>
@@ -32,18 +20,27 @@
                 {{ userError.password }}
               </div>
             </div>
+            <div class="input-group mb-3">
+              <input v-model="user.password_confirmation" type="password" class="form-control"
+                placeholder="Confirm Password" autocomplete />
+              <div class="input-group-append">
+                <div class="input-group-text">
+                  <span class="fas fa-lock"></span>
+                </div>
+              </div>
+            </div>
             <div class="row">
               <div class="col-8"></div>
               <div class="col-4">
-                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                <button type="submit" class="btn btn-primary btn-block">Reset</button>
               </div>
             </div>
           </form>
           <p class="mb-1">
-            <router-link :to="{ name: 'auth.signup' }" class="text-center">Register a new membership</router-link>
+            <router-link :to="{ name: 'auth.signin' }" class="text-center">Go back to login</router-link>
           </p>
           <p class="mb-0">
-            <router-link :to="{ name: 'auth.reset-password' }" class="text-center">Forgot your password?</router-link>
+            <router-link :to="{ name: 'auth.signup' }" class="text-center">Register a new membership</router-link>
           </p>
         </div>
       </div>
@@ -52,21 +49,20 @@
 </template>
 
 <script setup>
-import { useRouter } from "vue-router";
+import axios from "axios";
+import Swal from "sweetalert2";
 import { reactive } from "vue";
-import { apiSignIn } from "@/functions/api/auth";
+import { useRoute, useRouter } from "vue-router";
 import { LoadingModal, MessageModal, CloseModal } from "@/functions/swal";
-import { useUserStore } from "@/stores/user";
+const route = useRoute();
 const router = useRouter();
-const userStore = useUserStore();
 
 const user = reactive({
-  email: "",
   password: "",
+  password_confirmation: "",
 });
 
 const userError = reactive({
-  email: "",
   password: "",
 });
 
@@ -78,16 +74,14 @@ function resetAllState() {
   Object.assign(userError, defaultUserError);
 }
 
-async function signIn() {
+async function setNewPassword() {
   try {
-    LoadingModal('Signing In...');
-    const response = await apiSignIn(user);
-    const { data } = response;
-    userStore.setState(data.user);
-    userStore.setSanctumToken(data.token);
+    LoadingModal('Setting new password...');
+    const response = await axios.post(new URL(route.query['forwarded-url']), user);
     resetAllState();
-    router.replace({ name: "dashboard" });
-    return CloseModal();
+    await MessageModal({ icon: "success", title: "Success", text: response.data.message }, () => {
+      router.push({ name: 'auth.signin' });
+    });
   } catch (error) {
     const { response } = error;
     if (!response) {

@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const APP_API_URL = import.meta.env.VITE_APP_API_URL;
 const APP_VERIFY_EMAIL_URL = import.meta.env.VITE_APP_VERIFY_EMAIL_URL;
+const APP_RESET_PASSWORD_URL = import.meta.env.VITE_APP_RESET_PASSWORD_URL;
 
 export async function apiSignUp(user) {
   return await axios.post(APP_API_URL + '/signup', {
@@ -29,3 +30,7 @@ export async function apiVerify(token) {
 export async function apiSendVerificationEmail(email) {
   return await axios.post(APP_API_URL + '/send/verification-email', { email, callback_url: APP_VERIFY_EMAIL_URL });
 }
+export async function apiSendResetPasswordEmail(email) {
+  return await axios.post(APP_API_URL + '/send/reset-password-email', { email, callback_url: APP_RESET_PASSWORD_URL });
+}
+

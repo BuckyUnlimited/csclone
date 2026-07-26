@@ -6,11 +6,11 @@
           <router-link to="/" class="h1"><b>Admin</b>LTE</router-link>
         </div>
         <div class="card-body">
-          <p class="login-box-msg">Sign in to start your session</p>
-          <form @submit.prevent="signIn">
+          <p class="login-box-msg">Enter your email to receive a password reset link</p>
+          <form @submit.prevent="sendResetPasswordEmail">
             <div class="input-group mb-3">
-              <input type="email" v-model="user.email" class="form-control" placeholder="Email"
-                :class="{ 'is-invalid': !!userError.email }" />
+              <input v-model="user.email" :class="{ 'is-invalid': !!userError.email }" type="email" class="form-control"
+                placeholder="Email" />
               <div class="input-group-append">
                 <div class="input-group-text">
                   <span class="fas fa-envelope"></span>
@@ -20,54 +20,36 @@
                 {{ userError.email }}
               </div>
             </div>
-            <div class="input-group mb-3">
-              <input type="password" v-model="user.password" class="form-control" placeholder="Password" autocomplete
-                :class="{ 'is-invalid': !!userError.password }" />
-              <div class="input-group-append">
-                <div class="input-group-text">
-                  <span class="fas fa-lock"></span>
-                </div>
-              </div>
-              <div class="invalid-feedback">
-                {{ userError.password }}
-              </div>
-            </div>
             <div class="row">
               <div class="col-8"></div>
               <div class="col-4">
-                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                <button type="submit" class="btn btn-primary btn-block">Send Link</button>
               </div>
             </div>
           </form>
+
           <p class="mb-1">
-            <router-link :to="{ name: 'auth.signup' }" class="text-center">Register a new membership</router-link>
+            <router-link :to="{ name: 'auth.signin' }" class="text-center">Go back to login</router-link>
           </p>
           <p class="mb-0">
-            <router-link :to="{ name: 'auth.reset-password' }" class="text-center">Forgot your password?</router-link>
+            <router-link :to="{ name: 'auth.signup' }" class="text-center">Register a new membership</router-link>
           </p>
         </div>
       </div>
     </div>
   </div>
 </template>
-
 <script setup>
-import { useRouter } from "vue-router";
 import { reactive } from "vue";
-import { apiSignIn } from "@/functions/api/auth";
+import { apiSendResetPasswordEmail } from "@/functions/api/auth";
 import { LoadingModal, MessageModal, CloseModal } from "@/functions/swal";
-import { useUserStore } from "@/stores/user";
-const router = useRouter();
-const userStore = useUserStore();
 
 const user = reactive({
   email: "",
-  password: "",
 });
 
 const userError = reactive({
   email: "",
-  password: "",
 });
 
 const defaultUser = JSON.parse(JSON.stringify(user));
@@ -78,16 +60,12 @@ function resetAllState() {
   Object.assign(userError, defaultUserError);
 }
 
-async function signIn() {
+async function sendResetPasswordEmail() {
   try {
-    LoadingModal('Signing In...');
-    const response = await apiSignIn(user);
-    const { data } = response;
-    userStore.setState(data.user);
-    userStore.setSanctumToken(data.token);
+    LoadingModal();
+    const response = await apiSendResetPasswordEmail(user.email);
     resetAllState();
-    router.replace({ name: "dashboard" });
-    return CloseModal();
+    return MessageModal({ icon: "success", title: "Success", text: response.data.message });
   } catch (error) {
     const { response } = error;
     if (!response) {
