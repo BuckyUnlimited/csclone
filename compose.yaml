@@ -1,62 +1,63 @@
 services:
-  laravel-service:
-    container_name: laravel-container
-    build:
-      context: .
-      dockerfile: docker/laravel/Dockerfile
-    working_dir: /var/www/html
-    volumes:
-      - ./laravel-app:/var/www/html
-      - laravel_data:/var/www/html/vendor
-      - ./docker/laravel/entrypoint.development.sh:/usr/local/bin/entrypoint.development.sh
-    ports:
-      - "8000:8000"
-    depends_on:
-      - mysql-service
-    command: ["bash", "/usr/local/bin/entrypoint.development.sh"]
+    laravel-service:
+        container_name: laravel-container
+        build:
+            context: .
+            dockerfile: docker/laravel/Dockerfile
+        working_dir: /var/www/html
+        volumes:
+            - ./laravel-app:/var/www/html
+            - laravel_data:/var/www/html/vendor
+            - ./docker/laravel/entrypoint.development.sh:/usr/local/bin/entrypoint.development.sh
+            - ./docker/laravel/supervisord.development.conf:/etc/supervisor/conf.d/supervisord.development.conf
+        ports:
+            - "8000:8000"
+        depends_on:
+            - mysql-service
+        command: ["bash", "/usr/local/bin/entrypoint.development.sh"]
 
-  vuejs-service:
-    container_name: vuejs-container
-    build:
-      context: .
-      dockerfile: docker/vuejs/Dockerfile
-    working_dir: /app
-    volumes:
-      - ./vuejs-app:/app
-      - vuejs_data:/var/www/html/node_modules
-      - ./docker/vuejs/entrypoint.development.sh:/usr/local/bin/entrypoint.development.sh
-    ports:
-      - "5173:5173"
-    depends_on:
-      - laravel-service
-    command: ["sh", "/usr/local/bin/entrypoint.development.sh"]
+    vuejs-service:
+        container_name: vuejs-container
+        build:
+            context: .
+            dockerfile: docker/vuejs/Dockerfile
+        working_dir: /app
+        volumes:
+            - ./vuejs-app:/app
+            - vuejs_data:/var/www/html/node_modules
+            - ./docker/vuejs/entrypoint.development.sh:/usr/local/bin/entrypoint.development.sh
+        ports:
+            - "5173:5173"
+        depends_on:
+            - laravel-service
+        command: ["sh", "/usr/local/bin/entrypoint.development.sh"]
 
-  mysql-service:
-    image: mysql:8.0
-    container_name: mysql-container
-    environment:
-      MYSQL_DATABASE: chat_system
-      MYSQL_USER: chat_user
-      MYSQL_PASSWORD: chat_password
-      MYSQL_ROOT_PASSWORD: root
-      TZ: UTC
-    volumes:
-      - mysql_data:/var/lib/mysql
+    mysql-service:
+        image: mysql:8.0
+        container_name: mysql-container
+        environment:
+            MYSQL_DATABASE: chat_system
+            MYSQL_USER: chat_user
+            MYSQL_PASSWORD: chat_password
+            MYSQL_ROOT_PASSWORD: root
+            TZ: UTC
+        volumes:
+            - mysql_data:/var/lib/mysql
 
-  phpmyadmin:
-    image: phpmyadmin:5.2.2
-    container_name: phpmyadmin-container
-    depends_on:
-      - mysql-service
-    environment:
-      UPLOAD_LIMIT: 50M
-      PMA_HOST: mysql-service
-      PMA_PORT: 3306
-      PMA_USER: root
-      PMA_PASSWORD: root
-    ports:
-      - "9000:80"
+    phpmyadmin:
+        image: phpmyadmin:5.2.2
+        container_name: phpmyadmin-container
+        depends_on:
+            - mysql-service
+        environment:
+            UPLOAD_LIMIT: 50M
+            PMA_HOST: mysql-service
+            PMA_PORT: 3306
+            PMA_USER: root
+            PMA_PASSWORD: root
+        ports:
+            - "9000:80"
 volumes:
-  mysql_data:
-  laravel_data:
-  vuejs_data:
+    mysql_data:
+    laravel_data:
+    vuejs_data:
