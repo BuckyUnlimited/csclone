@@ -41,8 +41,13 @@
           </form>
           <div class="social-auth-links text-center mt-3 mb-3">
             <p>- OR -</p>
-            <button @click="googleSignIn()" class="btn btn-block btn-danger">
+            <button @click="oauthSignIn('google')" class="btn btn-block btn-danger">
               <i class="fab fa-google mr-2"></i> Sign in with Google
+            </button>
+          </div>
+          <div class="social-auth-links text-center mt-3 mb-3">
+            <button @click="oauthSignIn('github')" class="btn btn-block btn-dark">
+              <i class="fab fa-github mr-2"></i> Sign in with Github
             </button>
           </div>
           <p class="mb-1">
@@ -63,7 +68,7 @@ import { reactive } from "vue";
 import { apiSignIn } from "@/functions/api/auth";
 import { LoadingModal, MessageModal, CloseModal } from "@/functions/swal";
 import { useUserStore } from "@/stores/user";
-import { apiGoogleOAuthRedirect } from "@/functions/api/google-oauth";
+import { apiOAuthRedirect } from "@/functions/api/oauth";
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -114,10 +119,10 @@ async function signIn() {
   }
 }
 
-const googleSignIn = async () => {
+const oauthSignIn = async (driver) => {
   try {
     LoadingModal();
-    const response = await apiGoogleOAuthRedirect();
+    const response = await apiOAuthRedirect(driver);
     window.location.href = response.data.redirect_url;
   } catch (error) {
     return MessageModal({ icon: "error", title: "Error", text: error.message || error.response.data.message });
