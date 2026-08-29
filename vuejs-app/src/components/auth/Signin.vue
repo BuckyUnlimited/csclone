@@ -3,7 +3,7 @@
     <div class="login-box">
       <div class="card card-outline card-primary">
         <div class="card-header text-center">
-          <router-link to="/" class="h1"><b>Admin</b>LTE</router-link>
+          <router-link to="/" class="h1"><b>Chat</b>System</router-link>
         </div>
         <div class="card-body">
           <p class="login-box-msg">Sign in to start your session</p>
@@ -32,11 +32,9 @@
                 {{ userError.password }}
               </div>
             </div>
-            <div class="row ">
+            <div class="social-auth-links text-center mt-3 mb-3">
               <div class="col-8"></div>
-              <div class="col-4">
-                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
-              </div>
+              <button type="submit" class="btn btn-primary btn-block">Sign In</button>
             </div>
           </form>
           <div class="social-auth-links text-center mt-3 mb-3">
@@ -50,10 +48,10 @@
               <i class="fab fa-github mr-2"></i> Sign in with Github
             </button>
           </div>
-          <p class="mb-1">
+          <p class="mb-1 text-center">
             <router-link :to="{ name: 'auth.signup' }" class="text-center">Register a new membership</router-link>
           </p>
-          <p class="mb-0">
+          <p class="mb-0 text-center">
             <router-link :to="{ name: 'auth.reset-password' }" class="text-center">Forgot your password?</router-link>
           </p>
         </div>

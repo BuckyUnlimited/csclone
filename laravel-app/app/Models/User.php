@@ -8,6 +8,7 @@ use App\Notifications\ResetPasswordNotification;
 use App\Services\ImageClassService;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -77,4 +78,13 @@ class User extends Authenticatable
     }
     // end profile image related methods and attributes
 
+    protected function scopeIsAdmin(Builder $query): void
+    {
+        $query->where('level', 'ADMIN');
+    }
+
+    protected function scopeIsUser(Builder $query): void
+    {
+        $query->where('level', 'USER');
+    }
 }
