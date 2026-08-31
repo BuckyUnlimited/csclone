@@ -15,6 +15,7 @@ class UnicodeCorrection
      */
     public function handle(Request $request, Closure $next): Response
     {
+
         $data = $request->all();
 
         $data = $this->replaceUnicodeRecursive($data);

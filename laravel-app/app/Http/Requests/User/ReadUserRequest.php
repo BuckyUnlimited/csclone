@@ -23,7 +23,7 @@ class ReadUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-
+            //
         ];
     }
 }
