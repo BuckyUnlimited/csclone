@@ -39,34 +39,26 @@
             <div class="form-group">
               <label for="userName">Name</label>
               <input type="text" class="form-control" v-model="user.name" :class="{ 'is-invalid': !!userError.name }" />
-              <div class="invalid-feedback">
-                {{ userError.name }}
-              </div>
+              <div class="invalid-feedback">{{ userError.name }}</div>
             </div>
             <div class="form-group">
               <label for="userEmail">Email</label>
               <input type="email" class="form-control" v-model="user.email"
                 :class="{ 'is-invalid': !!userError.email }" />
-              <div class="invalid-feedback">
-                {{ userError.email }}
-              </div>
+              <div class="invalid-feedback">{{ userError.email }}</div>
             </div>
             <div class="form-group">
               <label for="userPassword">Password</label>
               <input type="password" class="form-control" v-model="user.password"
                 :class="{ 'is-invalid': !!userError.password }" />
-              <div class="invalid-feedback">
-                {{ userError.password }}
-              </div>
+              <div class="invalid-feedback">{{ userError.password }}</div>
             </div>
           </div>
           <div class="modal-footer justify-content-between">
             <button type="button" class="btn btn-default" @click="hideModal">
               Close
             </button>
-            <button type="submit" class="btn btn-primary">
-              Save changes
-            </button>
+            <button type="submit" class="btn btn-primary">Save changes</button>
           </div>
         </div>
       </div>
@@ -77,13 +69,7 @@
 <script setup>
 import $ from "jquery";
 import Swal from "sweetalert2";
-import {
-  apiGetUsers,
-  apiCreateUser,
-  apiUpdateUser,
-  apiReadUser,
-  apiDeleteUser,
-} from "@/functions/api/user";
+import { apiGetUsers, apiCreateUser, apiUpdateUser, apiReadUser, apiDeleteUser, apiToggleUserStatus } from "@/functions/api/user";
 import { CloseModal, LoadingModal, MessageModal } from "@/functions/swal";
 import { onMounted, ref, h, reactive, watch } from "vue";
 import CustomTablePaginated from "@/components/includes/controls/CustomTablePaginated.vue";
@@ -96,7 +82,7 @@ const currentPage = ref(1);
 const pageSize = ref(25);
 const total = ref(0);
 const lastPage = ref(1);
-const keyword = ref(""); // Track search keyword
+const keyword = ref("");  // Track search keyword
 
 const user = reactive({
   id: null,
@@ -134,6 +120,21 @@ const columns = [
     accessorKey: "email",
   },
   {
+    header: "Status",
+    accessorKey: "status",
+    cell: ({
+      row: {
+        original: { status },
+      },
+    }) => h(
+      "span",
+      {
+        class: status === "ENABLED" ? "badge badge-success" : "badge badge-danger",
+      },
+      status
+    ),
+  },
+  {
     accessorKey: "action",
     header: () => [
       "Actions",
@@ -143,12 +144,12 @@ const columns = [
           onClick: () => showModal(),
           class: "btn btn-sm btn-success ml-3",
         },
-        "Create",
+        "Create"
       ),
     ],
     cell: ({
       row: {
-        original: { id },
+        original: { id, status },
       },
     }) => [
         // delete btn
@@ -158,7 +159,7 @@ const columns = [
             onClick: () => removeUser(id),
             class: "btn btn-sm btn-outline-danger mx-1",
           },
-          h("i", { class: "fa fa-trash" }),
+          h("i", { class: "fa fa-trash" })
         ),
         // view btn
         h(
@@ -167,7 +168,17 @@ const columns = [
             onClick: () => viewUser(id),
             class: "btn btn-sm btn-outline-secondary mx-1",
           },
-          h("i", { class: "fa fa-pen" }),
+          h("i", { class: "fa fa-pen" })
+        ),
+        // toggle status btn
+        h(
+          "button",
+          {
+            onClick: () => toggleUserStatus(id),
+            class: status === "ENABLED" ? "btn btn-sm btn-danger mx-1" : "btn btn-sm btn-success mx-1",
+            title: status === "ENABLED" ? "Disable User" : "Enable User",
+          },
+          h("i", { class: status === "ENABLED" ? "fa fa-ban" : "fa fa-check" })
         ),
       ],
     enableSorting: false,
@@ -183,11 +194,7 @@ onMounted(async () => {
     await generateUsers(keyword.value, currentPage.value, pageSize.value);
     return CloseModal();
   } catch (error) {
-    return MessageModal({
-      icon: "error",
-      title: "Error",
-      text: error.response?.data?.message || error.message,
-    });
+    return MessageModal({ icon: "error", title: "Error", text: error.response?.data?.message || error.message });
   }
 });
 
@@ -214,11 +221,7 @@ watch(currentPage, async (newPage, oldPage) => {
       await generateUsers(keyword.value, newPage, pageSize.value);
       CloseModal();
     } catch (error) {
-      MessageModal({
-        icon: "error",
-        title: "Error",
-        text: error.response?.data?.message || error.message,
-      });
+      MessageModal({ icon: "error", title: "Error", text: error.response?.data?.message || error.message });
     }
   }
 });
@@ -231,11 +234,7 @@ watch(pageSize, async (newSize, oldSize) => {
       await generateUsers(keyword.value, 1, newSize);
       CloseModal();
     } catch (error) {
-      MessageModal({
-        icon: "error",
-        title: "Error",
-        text: error.response?.data?.message || error.message,
-      });
+      MessageModal({ icon: "error", title: "Error", text: error.response?.data?.message || error.message });
     }
   }
 });
@@ -246,13 +245,10 @@ async function handleSearchChange(searchKeyword) {
     await generateUsers(searchKeyword, 1, pageSize.value);
     CloseModal();
   } catch (error) {
-    MessageModal({
-      icon: "error",
-      title: "Error",
-      text: error.response?.data?.message || error.message,
-    });
+    MessageModal({ icon: "error", title: "Error", text: error.response?.data?.message || error.message });
   }
 }
+
 
 async function saveUser() {
   try {
@@ -268,32 +264,22 @@ async function saveUser() {
 
     // Implement save user logic here
     hideModal();
-    return MessageModal({
-      icon: "success",
-      title: "Success",
-      text: response.data.message,
-    });
+    return MessageModal({ icon: "success", title: "Success", text: response.data.message });
   } catch (error) {
     const { response } = error;
     if (!response) {
-      return MessageModal({
-        icon: "error",
-        title: "Error",
-        text: error.message,
-      });
+      return MessageModal({ icon: "error", title: "Error", text: error.message });
     }
     const { status, data } = response;
     if (status === 422) {
       Object.keys(userError).forEach((key) => {
-        userError[key] = data.errors[key] ? data.errors[key][0] : "";
+        userError[key] = data.errors[key]
+          ? data.errors[key][0]
+          : "";
       });
       return CloseModal();
     }
-    return MessageModal({
-      icon: "error",
-      title: "Error",
-      text: data.message,
-    });
+    return MessageModal({ icon: "error", title: "Error", text: data.message });
   }
 }
 
@@ -305,11 +291,7 @@ async function viewUser(id) {
     showModal();
     return CloseModal();
   } catch (error) {
-    return MessageModal({
-      icon: "error",
-      title: "Error",
-      text: error.response?.data?.message || error.message,
-    });
+    return MessageModal({ icon: "error", title: "Error", text: error.response?.data?.message || error.message });
   }
 }
 
@@ -327,21 +309,25 @@ async function removeUser(id) {
         LoadingModal();
         const response = await apiDeleteUser(id);
         onUserDelete(id);
-        return MessageModal({
-          icon: "success",
-          title: "Success",
-          text: response.data.message,
-        });
+        return MessageModal({ icon: "success", title: "Success", text: response.data.message });
       } catch (error) {
-        return MessageModal({
-          icon: "error",
-          title: "Error",
-          text: error.response?.data?.message || error.message,
-        });
+        return MessageModal({ icon: "error", title: "Error", text: error.response?.data?.message || error.message });
       }
     }
   });
 }
+
+async function toggleUserStatus(id) {
+  try {
+    LoadingModal();
+    const response = await apiToggleUserStatus(id);
+    onUserUpdate(response.data.user);
+    return MessageModal({ icon: "success", title: "Success", text: response.data.message });
+  } catch (error) {
+    return MessageModal({ icon: "error", title: "Error", text: error.response?.data?.message || error.message });
+  }
+}
+
 
 function showModal() {
   $(userModal.value).modal("show");
