@@ -98,4 +98,9 @@ class User extends Authenticatable
     {
         $query->where('status', 'DISABLED');
     }
+
+    public function chats()
+    {
+        return $this->belongsToMany(Chat::class, 'chat_members', 'user_id', 'chat_id');
+    }
 }
