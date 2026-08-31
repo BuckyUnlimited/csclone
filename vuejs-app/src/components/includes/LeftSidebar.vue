@@ -47,7 +47,8 @@
       <!-- SidebarSearch Form -->
       <div class="form-inline">
         <div class="input-group">
-          <input class="form-control form-control-sidebar" type="text" placeholder="Search" aria-label="Search">
+          <input v-model="keyword" class="form-control form-control-sidebar" type="text" placeholder="Search"
+            aria-label="Search">
           <div class="input-group-append">
             <button class="btn btn-sidebar">
               <i class="fas fa-search fa-fw"></i>
@@ -56,34 +57,127 @@
         </div>
       </div>
       <nav class="mt-2">
+
         <ChatList :chats="chats"></ChatList>
+
         <UserList :users="users"></UserList>
+
+        <li v-if="isLoadingMore" class="nav-item text-center text-light p-2">
+          <i class="fas fa-spinner fa-spin"></i> Loading...
+        </li>
       </nav>
     </div>
   </aside>
 </template>
 <script setup>
-import emptyImage from '@/assets/images/emptyImage.png';
-import logoImage from '@/assets/images/logoImage.webp';
-import { useUserStore } from '@/stores/user';
-import { ref, onMounted } from 'vue';
-import { apiGetChats, apiGetChatUsers } from '@/functions/api/chat';
-import ChatList from '@/components/includes/controls/ChatList.vue';
-import UserList from '@/components/includes/controls/UserList.vue';
+import emptyImage from "@/assets/images/emptyImage.png";
+import logoImage from "@/assets/images/logoImage.webp";
+import { useUserStore } from "@/stores/user";
+import { ref, onMounted, watch, computed } from "vue";
+import { apiGetChats, apiGetChatUsers } from "@/functions/api/chat";
+import ChatList from "@/components/includes/controls/ChatList.vue";
+import UserList from "@/components/includes/controls/UserList.vue";
+import $ from "jquery";
+
 const userStore = useUserStore();
 const chats = ref([]);
 const users = ref([]);
 
+// Pagination state chat
+const chatCurrentPage = ref(1);
+const chatLastPage = ref(1);
+
+// Pagination state users
+const userCurrentPage = ref(1);
+const userLastPage = ref(1);
+
+const pageSize = ref(50);
+const keyword = ref("");
+const isLoadingMore = ref(false);
+
 onMounted(() => {
   generateChats();
-  generateUsers();
+
+  // jQuery infinite scroll on sidebar
+  $(".sidebar").on("scroll", async function () {
+    if (isLoadingMore.value) {
+      return; // Prevent multiple simultaneous fetches
+    }
+
+    const $this = $(this);
+    const scrollTop = $this.scrollTop();
+    const innerHeight = $this.innerHeight();
+    const scrollHeight = $this[0].scrollHeight;
+
+    if (scrollTop + innerHeight < scrollHeight - 50) {
+      return; // Not near the bottom yet
+    }
+
+    isLoadingMore.value = true;
+
+    // load more users
+    if (userCurrentPage.value < userLastPage.value) {
+      await generateUsers(keyword.value, userCurrentPage.value + 1);
+    }
+
+    // load more chats
+    if (chatCurrentPage.value < chatLastPage.value) {
+      await generateChats(keyword.value, chatCurrentPage.value + 1);
+    }
+
+    isLoadingMore.value = false;
+  });
 });
-async function generateChats() {
-  const response = await apiGetChats();
-  chats.value = response.data.chats;
+
+watch(keyword, async (newKeyword) => {
+  if (isLoadingMore.value) {
+    return;
+  }
+
+  users.value = [];
+  chats.value = [];
+
+  isLoadingMore.value = true;
+
+  await Promise.all([
+    generateChats(newKeyword, 1,),
+    generateUsers(newKeyword, 1),
+  ]);
+
+  isLoadingMore.value = false;
+});
+
+async function generateChats(
+  searchKeyword = "",
+  page = 1,
+  per_page = pageSize.value,
+) {
+  const response = await apiGetChats({
+    keyword: searchKeyword,
+    page: page,
+    per_page: per_page,
+  });
+
+  chats.value = [...chats.value, ...response.data.chats];
+
+  chatCurrentPage.value = response.data.meta.current_page;
+  chatLastPage.value = response.data.meta.last_page;
 }
-async function generateUsers() {
-  const response = await apiGetChatUsers();
-  users.value = response.data.users;
+
+async function generateUsers(
+  searchKeyword = "",
+  page = 1,
+  per_page = pageSize.value,
+) {
+  const response = await apiGetChatUsers({
+    keyword: searchKeyword,
+    page: page,
+    per_page: per_page,
+  });
+
+  users.value = [...users.value, ...response.data.users];
+
+  userCurrentPage.value = response.data.meta.current_page;
+  userLastPage.value = response.data.meta.last_page;
 }
 </script>
