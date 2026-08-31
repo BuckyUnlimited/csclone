@@ -8,6 +8,7 @@ import VerifyEmail from '@/components/auth/VerifyEmail.vue';
 import OAuth from '@/components/oauth/OAuthCallback.vue';
 import Dashboard from '@/components/pages/Dashboard.vue';
 import User from "@/components/pages/User.vue";
+import Backup from '@/components/pages/Backup.vue';
 
 import { createRouter, createWebHistory } from 'vue-router';
 
@@ -92,6 +93,18 @@ const router = createRouter({
       name: "users",
       components: {
         default: User,
+        navbar: Navbar,
+        left_sidebar: LeftSidebar,
+        right_sidebar: RightSidebar,
+        footer: Footer,
+      },
+      meta: { guarded: true },
+    },
+    {
+      path: '/backups',
+      name: 'backups',
+      components: {
+        default: Backup,
         navbar: Navbar,
         left_sidebar: LeftSidebar,
         right_sidebar: RightSidebar,
