@@ -14,34 +14,6 @@
           <router-link :to="{ name: 'profile' }" class="d-block">{{ userStore.name }}</router-link>
         </div>
       </div>
-
-      <!-- SidebarSearch Form -->
-      <div class="form-inline">
-        <div class="input-group" data-widget="sidebar-search">
-          <input class="form-control form-control-sidebar" type="search" placeholder="Search" aria-label="Search">
-          <div class="input-group-append">
-            <button class="btn btn-sidebar">
-              <i class="fas fa-search fa-fw"></i>
-            </button>
-          </div>
-        </div>
-        <div class="sidebar-search-results">
-          <div class="list-group"><a href="#" class="list-group-item">
-              <div class="search-title"><strong class="text-light"></strong>N<strong
-                  class="text-light"></strong>o<strong class="text-light"></strong> <strong
-                  class="text-light"></strong>e<strong class="text-light"></strong>l<strong
-                  class="text-light"></strong>e<strong class="text-light"></strong>m<strong
-                  class="text-light"></strong>e<strong class="text-light"></strong>n<strong
-                  class="text-light"></strong>t<strong class="text-light"></strong> <strong
-                  class="text-light"></strong>f<strong class="text-light"></strong>o<strong
-                  class="text-light"></strong>u<strong class="text-light"></strong>n<strong
-                  class="text-light"></strong>d<strong class="text-light"></strong>!<strong class="text-light"></strong>
-              </div>
-              <div class="search-path"></div>
-            </a></div>
-        </div>
-      </div>
-
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
           <li class="nav-item">
@@ -71,6 +43,22 @@
           </li>
         </ul>
       </nav>
+
+      <!-- SidebarSearch Form -->
+      <div class="form-inline">
+        <div class="input-group">
+          <input class="form-control form-control-sidebar" type="text" placeholder="Search" aria-label="Search">
+          <div class="input-group-append">
+            <button class="btn btn-sidebar">
+              <i class="fas fa-search fa-fw"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <nav class="mt-2">
+        <ChatList :chats="chats"></ChatList>
+        <UserList :users="users"></UserList>
+      </nav>
     </div>
   </aside>
 </template>
@@ -78,6 +66,24 @@
 import emptyImage from '@/assets/images/emptyImage.png';
 import logoImage from '@/assets/images/logoImage.webp';
 import { useUserStore } from '@/stores/user';
-
+import { ref, onMounted } from 'vue';
+import { apiGetChats, apiGetChatUsers } from '@/functions/api/chat';
+import ChatList from '@/components/includes/controls/ChatList.vue';
+import UserList from '@/components/includes/controls/UserList.vue';
 const userStore = useUserStore();
+const chats = ref([]);
+const users = ref([]);
+
+onMounted(() => {
+  generateChats();
+  generateUsers();
+});
+async function generateChats() {
+  const response = await apiGetChats();
+  chats.value = response.data.chats;
+}
+async function generateUsers() {
+  const response = await apiGetChatUsers();
+  users.value = response.data.users;
+}
 </script>
