@@ -10,7 +10,7 @@ use Laravel\Socialite\Facades\Socialite;
 
 class OAuthController extends Controller
 {
-    function oAuthRedirect(Request $request, $driver)//creates the Google login URL and sends it back to the frontend.
+    function oAuthRedirect(Request $request, $driver) //creates the Google login URL and sends it back to the frontend.
     {
         $callback_url = $request->query('callback_url', '');
 
@@ -23,13 +23,13 @@ class OAuthController extends Controller
         return response(['redirect_url' => $redirectUrl], 200);
     }
 
-    function oAuthCallback(Request $request, $driver)//called by Google after the user signs in.
+    function oAuthCallback(Request $request, $driver) //called by Google after the user signs in.
     {
         $callback_url = base64_decode($request->query('state', ''));
         try {
             $oauthUser = Socialite::driver($driver)->stateless()->user();
         } catch (\Exception $e) {
-            return redirect($callback_url . '?error=' . $driver .'_oauth_failed');
+            return redirect($callback_url . '?error=' . $driver . '_oauth_failed');
         }
 
         $user = User::firstOrCreate(
@@ -39,19 +39,23 @@ class OAuthController extends Controller
             ]
         );
 
-        $user->forceFill([
-            'email_verified_at' => now(),
-        ]);
+        if ($user->status === 'DISABLED') {
+            return redirect($callback_url . '?error=account_disabled');
+        }
         $user->save();
+
+        if (!$user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+        }
 
         $token = $user->createToken('auth_token', ['exchange-new-token'], now()->addMinute())->plainTextToken;
 
-        return redirect($callback_url . '?token=' . urlencode($token));//redirect token to frontend
+        return redirect($callback_url . '?token=' . urlencode($token)); //redirect token to frontend
     }
 
     function oAuthExchangeToken(Request $request)
     {
-        $user = $request->user();//authenticated user with token
+        $user = $request->user(); //authenticated user with token
 
         if (!$user->currentAccessToken()->can('exchange-new-token')) {
             return response(['message' => 'Invalid token.'], 403);

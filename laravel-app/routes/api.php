@@ -21,7 +21,7 @@ Route::post('/oauth/exchange/token', [OAuthController::class, 'oAuthExchangeToke
 
 
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'enabled'])->group(function () {
     Route::post('/signout', [AuthController::class, 'signout']);
     Route::get('/verify', [AuthController::class, 'verify']);
     Route::put('/create/password', [AuthController::class, 'createPassword']);
@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/read/{id}', [UserController::class, 'readUser']);
             Route::post('/create', [UserController::class, 'createUser']);
             Route::put('/update/{id}', [UserController::class, 'updateUser']);
+            Route::patch('/toggle-status/{id}', [UserController::class, 'toggleUserStatus']);
             Route::delete('/delete/{id}', [UserController::class, 'deleteUser']);
         });
     });

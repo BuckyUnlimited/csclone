@@ -22,6 +22,7 @@ class UserResource extends JsonResource
             'profile_thumbnail' => $this->profile_thumbnail,
             'password_null' => $this->password_null,
             'level' => $this->level,
+            'status' => $this->status,
         ];
     }
 }

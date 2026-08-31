@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\User\ToggleUserStatusRequest;
 use App\Http\Requests\User\CreateUserRequest;
 use App\Http\Requests\User\DeleteUserRequest;
 use App\Http\Requests\User\GetUserRequest;
@@ -10,12 +11,12 @@ use App\Http\Requests\User\ReadUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Resources\User\UserResource;
 use App\Models\User;
-use Exception;
 use Illuminate\Support\Facades\DB;
+use Exception;
 
 class UserController extends Controller
 {
-        public function getUsers(GetUserRequest $request)
+    public function getUsers(GetUserRequest $request)
     {
         $keyword = $request->input('keyword', null);
         $perPage = $request->input('per_page', 25);
@@ -125,6 +126,37 @@ class UserController extends Controller
 
         return response([
             'message' => 'User deleted.'
+        ], 200);
+    }
+
+    public function toggleUserStatus(ToggleUserStatusRequest $request)
+    {
+        $user = User::where('id', $request->route('id'))
+            ->isUser()
+            ->firstOrFail();
+
+        try {
+            DB::beginTransaction();
+            // Toggle status between ENABLED and DISABLED
+            $user->status = $user->status === 'ENABLED' ? 'DISABLED' : 'ENABLED';
+
+            // If disabling, invalidate all tokens
+            if ($user->status === 'DISABLED') {
+                $user->tokens()->delete();
+            }
+
+            $user->save();
+            DB::commit();
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response([
+                'message' => 'Failed to update user status'
+            ], 500);
+        }
+
+        return response([
+            'message' => 'User status updated.',
+            'user' => new UserResource($user)
         ], 200);
     }
 }

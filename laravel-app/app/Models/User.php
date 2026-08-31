@@ -8,16 +8,16 @@ use App\Notifications\ResetPasswordNotification;
 use App\Services\ImageClassService;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'profile_image'])]
+#[Fillable(['name', 'email', 'password', 'profile_image', 'level', 'status'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -78,6 +78,7 @@ class User extends Authenticatable
     }
     // end profile image related methods and attributes
 
+
     protected function scopeIsAdmin(Builder $query): void
     {
         $query->where('level', 'ADMIN');
@@ -86,5 +87,15 @@ class User extends Authenticatable
     protected function scopeIsUser(Builder $query): void
     {
         $query->where('level', 'USER');
+    }
+
+    protected function scopeIsEnabled(Builder $query): void
+    {
+        $query->where('status', 'ENABLED');
+    }
+
+    protected function scopeIsDisabled(Builder $query): void
+    {
+        $query->where('status', 'DISABLED');
     }
 }
