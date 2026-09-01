@@ -23,6 +23,13 @@ use App\Models\User;
 use App\Services\ImageClassService;
 use Illuminate\Support\Facades\DB;
 use Exception;
+use App\Http\Requests\Chat\CreateChatMessageRequest;
+use App\Http\Requests\Chat\DeleteChatMessageRequest;
+use App\Http\Requests\Chat\GetChatMessagesRequest;
+use App\Http\Requests\Chat\MarkAllChatMessagesAsSeenRequest;
+use App\Http\Requests\Chat\UpdateChatMessageRequest;
+use App\Http\Resources\Chat\ChatMessageResource;
+use App\Models\ChatMessage;
 
 class ChatController extends Controller
 {
@@ -543,6 +550,133 @@ class ChatController extends Controller
         }
         return response([
             'message' => 'Member removed successfully'
+        ], 200);
+    }
+
+    public function getChatMessages(GetChatMessagesRequest $request, $chatId)
+    {
+        $user = $request->user();
+        $perPage = $request->input('per_page', 25);
+        $page = $request->input('page', 1);
+
+        // Verify user is a member of this chat
+        $chat = Chat::where('id', $chatId)
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        $messages = ChatMessage::where('chat_id', $chatId)
+            ->with('creator')
+            ->orderBy('created_at', 'asc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response([
+            'chat_messages' => ChatMessageResource::collection($messages),
+            'meta' => [
+                'current_page' => $messages->currentPage(),
+                'last_page' => $messages->lastPage(),
+                'per_page' => $messages->perPage(),
+                'total' => $messages->total(),
+            ],
+        ], 200);
+    }
+
+    public function createChatMessage(CreateChatMessageRequest $request, $chatId)
+    {
+        $user = $request->user();
+
+        // Verify user is a member of this chat
+        $chat = Chat::where('id', $chatId)
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        $message = ChatMessage::create([
+            'chat_id' => $chatId,
+            'creator_id' => $user->id,
+            'type' => 'text',
+            'content' => $request->input('content'),
+        ]);
+
+        return response([
+            'message' => 'Message created.',
+            'chat_message' => new ChatMessageResource($message->load('creator'))
+        ], 201);
+    }
+
+    public function updateChatMessage(UpdateChatMessageRequest $request, $chatId, $messageId)
+    {
+        $user = $request->user();
+
+        // Verify user is a member of this chat
+        $chat = Chat::where('id', $chatId)
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        // Find message and verify it belongs to the user
+        $message = ChatMessage::where('id', $messageId)
+            ->where('chat_id', $chatId)
+            ->where('creator_id', $user->id)
+            ->where('type', 'text') // Only allow editing text messages
+            ->firstOrFail();
+
+        $message->update([
+            'content' => $request->input('content'),
+        ]);
+
+        return response([
+            'message' => 'Message updated.',
+            'chat_message' => new ChatMessageResource($message->load('creator'))
+        ], 200);
+    }
+
+    public function deleteChatMessage(DeleteChatMessageRequest $request, $chatId, $messageId)
+    {
+        $user = $request->user();
+
+        // Verify user is a member of this chat
+        $chat = Chat::where('id', $chatId)
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        // Find message and verify it belongs to the user
+        $message = ChatMessage::where('id', $messageId)
+            ->where('chat_id', $chatId)
+            ->where('creator_id', $user->id)
+            ->firstOrFail();
+
+        $message->delete();
+
+        return response([
+            'message' => 'Message deleted.'
+        ], 200);
+    }
+
+    public function markAllChatMessagesAsSeen(MarkAllChatMessagesAsSeenRequest $request, $chatId)
+    {
+        $user = $request->user();
+
+        // Verify user is a member of this chat
+        $chat = Chat::where('id', $chatId)
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        // Mark all messages as seen except those created by current user
+        ChatMessage::where('chat_id', $chatId)
+            ->where('creator_id', '!=', $user->id)
+            ->whereNull('seen_at')
+            ->update(['seen_at' => now()]);
+
+        return response([
+            'message' => 'All messages marked as seen.'
         ], 200);
     }
 }
