@@ -10,4 +10,9 @@ class ImageClassService
     {
         return new ImageClass('public', 'users/profile-images', 128);
     }
+
+    public static function forChatModel(): ImageClass
+    {
+        return new ImageClass('public', 'chats/chat-avatars', 128);
+    }
 }

@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Services\ImageClassService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -37,4 +39,28 @@ class Chat extends Model
     {
         return $this->hasMany(ChatMessage::class);
     }
+
+    // profile image related methods and attributes
+    protected function avatar(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $imageClass = ImageClassService::forChatModel();
+                $imagePath = $this->getRawOriginal('avatar');
+                return $imageClass->fullUrl($imagePath);
+            },
+        );
+    }
+
+    protected function avatarThumbnail(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $imageClass = ImageClassService::forChatModel();
+                $thumbnailPath = $imageClass->thumbnailPath($this->getRawOriginal('avatar'));
+                return $imageClass->fullUrl($thumbnailPath);
+            },
+        );
+    }
+    // end profile image related methods and attributes
 }

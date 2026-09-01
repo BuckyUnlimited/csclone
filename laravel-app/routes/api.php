@@ -48,8 +48,15 @@ Route::middleware(['auth:sanctum', 'enabled'])->group(function () {
         });
     });
 
-        Route::prefix('chats')->group(function () {
+    Route::prefix('chats')->group(function () {
         Route::get('/', [ChatController::class, 'getChats']);
         Route::get('/users', [ChatController::class, 'getChatUsers']);
+        // Chat creation and management
+        Route::post('/personal/create', [ChatController::class, 'createPersonalChat']);
+        Route::post('/group/create', [ChatController::class, 'createGroupChat']);
+        Route::get('/read/{chatId}', [ChatController::class, 'readChat']);
+        Route::delete('/delete/{chatId}', [ChatController::class, 'deleteChat']);
+        Route::put('/group/update/{chatId}', [ChatController::class, 'updateGroupChat']);
+        Route::delete('/group/leave/{chatId}', [ChatController::class, 'leaveGroupChat']);
     });
 });
