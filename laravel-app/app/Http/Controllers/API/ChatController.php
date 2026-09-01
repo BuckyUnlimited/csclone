@@ -3,14 +3,18 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Chat\AddGroupChatMemberRequest;
 use App\Http\Requests\Chat\CreateGroupChatRequest;
 use App\Http\Requests\Chat\CreatePersonalChatRequest;
 use App\Http\Requests\Chat\DeleteChatRequest;
 use App\Http\Requests\Chat\GetChatsRequest;
 use App\Http\Requests\Chat\GetChatUsersRequest;
+use App\Http\Requests\Chat\GetGroupChatMembersRequest;
 use App\Http\Requests\Chat\LeaveGroupChatRequest;
 use App\Http\Requests\Chat\ReadChatRequest;
+use App\Http\Requests\Chat\RemoveGroupChatMemberRequest;
 use App\Http\Requests\Chat\UpdateGroupChatRequest;
+use App\Http\Resources\Chat\ChatMemberResource;
 use App\Http\Resources\Chat\ChatResource;
 use App\Http\Resources\Chat\ChatUserResource;
 use App\Models\Chat;
@@ -402,6 +406,143 @@ class ChatController extends Controller
 
         return response([
             'message' => 'Left chat successfully.'
+        ], 200);
+    }
+
+    public function getGroupChatMembers(GetGroupChatMembersRequest $request)
+    {
+        $user = $request->user();
+        $chatId = $request->route('chatId');
+
+        $keyword = $request->input('keyword', null);
+        $perPage = $request->input('per_page', 25);
+        $page = $request->input('page', 1);
+
+        $chat = Chat::where('id', $chatId)
+            ->where('type', 'group')
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        $members = $chat->members()
+            ->when($keyword, function ($query, $keyword) {
+                $query->whereHas('user', function ($query) use ($keyword) {
+                    $query->where('name', 'like', "%{$keyword}%")
+                        ->orWhere('email', 'like', "%{$keyword}%");
+                });
+            })
+            ->orderBy('role', 'asc') // Admins first // admin start with a, members with m, so asc will put admin first
+            ->with('user')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response([
+            'members' => ChatMemberResource::collection($members),
+            'meta' => [
+                'current_page' => $members->currentPage(),
+                'last_page' => $members->lastPage(),
+                'per_page' => $members->perPage(),
+                'total' => $members->total(),
+            ],
+        ], 200);
+    }
+
+    public function addGroupChatMember(AddGroupChatMemberRequest $request)
+    {
+        $user = $request->user();
+        $chatId = $request->route('chatId');
+
+        $chat = Chat::where('id', $chatId)
+            ->where('type', 'group')
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        // Only group admin can add members
+        $currentMember = $chat->members()->where('user_id', $user->id)->first();
+        if ($currentMember->role !== 'admin') {
+            return response([
+                'message' => 'Unauthorized to add members to this chat'
+            ], 403);
+        }
+
+        if ($request->user_id == $user->id) {
+            return response([
+                'message' => 'You cannot add yourself to the chat. You are already a member.'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Add new member
+            $member = ChatMember::firstOrCreate([
+                'chat_id' => $chat->id,
+                'user_id' => $request->user_id,
+            ], [
+                'role' => 'member',
+            ]);
+
+            DB::commit();
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response([
+                'message' => 'Failed to add member to chat'
+            ], 500);
+        }
+        return response([
+            'message' => 'Member added successfully',
+            'member' => new ChatMemberResource($member->load('user'))
+        ], 200);
+    }
+
+    public function removeGroupChatMember(RemoveGroupChatMemberRequest $request)
+    {
+        $user = $request->user();
+        $chatId = $request->route('chatId');
+        $memberId = $request->route('memberId');
+
+        $chat = Chat::where('id', $chatId)
+            ->where('type', 'group')
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        // Only group admin can remove members
+        $currentMember = $chat->members()->where('user_id', $user->id)->first();
+        if ($currentMember->role !== 'admin') {
+            return response([
+                'message' => 'Unauthorized to remove members from this chat'
+            ], 403);
+        }
+
+        if ($memberId == $currentMember->id) {
+            return response([
+                'message' => 'You cannot remove yourself from the chat. Use leave chat instead.'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Remove member
+            $memberToRemove = ChatMember::where('chat_id', $chat->id)
+                ->where('id', $memberId)
+                ->firstOrFail();
+
+            $memberToRemove->delete();
+
+            DB::commit();
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response([
+                'message' => 'Failed to remove member from chat'
+            ], 500);
+        }
+        return response([
+            'message' => 'Member removed successfully'
         ], 200);
     }
 }
