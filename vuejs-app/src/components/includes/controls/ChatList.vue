@@ -1,7 +1,8 @@
 <template>
   <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
     <li class="nav-item" v-for="chat in chats" :key="chat.id">
-      <a role="button" class="nav-link" active-class="active">
+      <RouterLink :to="{ name: 'chat.box', params: { chatId: chat.id } }" class="nav-link" active-class="active"
+        role="button">
         <img class="nav-icon img-circle elevation-3 my-1" :src="chat.avatar || emptyImage" />
         <p class="chat-name">{{ chat.name }}</p>
         <p class="chat-datetime">
@@ -21,7 +22,7 @@
           <i class="far fa-comment-dots"></i>
           <i class="fas fa-microphone"></i>
         </p>
-      </a>
+      </RouterLink>
     </li>
   </ul>
 </template>
