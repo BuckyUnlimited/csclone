@@ -53,3 +53,19 @@ export async function apiUpdateGroupChat(chatId, data) {
 export async function apiLeaveGroupChat(chatId) {
   return await axios.delete(APP_API_URL + `/chats/group/leave/${chatId}`);
 }
+
+export async function apiGetGroupChatMembers(chatId, params = {}) {
+  return await axios.get(APP_API_URL + `/chats/group/${chatId}/members`, {
+    params,
+  });
+}
+export async function apiAddGroupChatMember(chatId, userId) {
+  return await axios.post(APP_API_URL + `/chats/group/${chatId}/members/add`, {
+    user_id: userId,
+  });
+}
+export async function apiRemoveGroupChatMember(chatId, memberId) {
+  return await axios.delete(
+    APP_API_URL + `/chats/group/${chatId}/members/remove/${memberId}`,
+  );
+}
