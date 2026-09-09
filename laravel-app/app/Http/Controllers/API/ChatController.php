@@ -30,12 +30,16 @@ use App\Services\ImageClassService;
 use Illuminate\Support\Facades\DB;
 use Exception;
 use App\Http\Requests\Chat\CreateChatMessageRequest;
+use App\Http\Requests\Chat\CreateVoiceChatMessageRequest;
 use App\Http\Requests\Chat\DeleteChatMessageRequest;
 use App\Http\Requests\Chat\GetChatMessagesRequest;
 use App\Http\Requests\Chat\MarkAllChatMessagesAsSeenRequest;
 use App\Http\Requests\Chat\UpdateChatMessageRequest;
 use App\Http\Resources\Chat\ChatMessageResource;
 use App\Models\ChatMessage;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ChatController extends Controller
 {
@@ -708,5 +712,57 @@ class ChatController extends Controller
         return response([
             'message' => 'All messages marked as seen.'
         ], 200);
+    }
+
+    public function createVoiceChatMessage(CreateVoiceChatMessageRequest $request, $chatId)
+    {
+        $user = $request->user();
+
+        // Verify user is a member of this chat
+        $chat = Chat::where('id', $chatId)
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        $file = $request->file('voice');
+        $extension = $file->guessExtension() ?? 'webm';
+        $filename = Str::uuid() . '.' . $extension;
+        $path = $file->storeAs("chat-files/{$chatId}", $filename, 'local');
+
+        $message = ChatMessage::create([
+            'chat_id' => $chatId,
+            'creator_id' => $user->id,
+            'type' => 'voice',
+            'content' => 'Sent a voice message.',
+            'file_name' => $file->getClientOriginalName(),
+            'file_path' => $path,
+            'mime_type' => $file->getMimeType(),
+        ]);
+
+        broadcast(new MessageCreated($message, $chatId))->toOthers();
+
+        return response([
+            'message' => 'Voice message created.',
+            'chat_message' => new ChatMessageResource($message->load('creator'))
+        ], 201);
+    }
+
+    public function getChatFile(Request $request, $chatId, $filename)
+    {
+        $user = $request->user();
+
+        // Verify user is a member of this chat
+        Chat::where('id', $chatId)
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        $path = "chat-files/{$chatId}/{$filename}";
+
+        abort_unless(Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->response($path);
     }
 }

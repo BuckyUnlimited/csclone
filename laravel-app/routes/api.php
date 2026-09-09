@@ -68,5 +68,7 @@ Route::middleware(['auth:sanctum', 'enabled'])->group(function () {
         Route::patch('/{chatId}/messages/update/{messageId}', [ChatController::class, 'updateChatMessage']);
         Route::delete('/{chatId}/messages/delete/{messageId}', [ChatController::class, 'deleteChatMessage']);
         Route::post('/{chatId}/messages/seen-all', [ChatController::class, 'markAllChatMessagesAsSeen']);
+        Route::post('/{chatId}/messages/create-voice', [ChatController::class, 'createVoiceChatMessage']);
+        Route::get('/{chatId}/files/{filename}', [ChatController::class, 'getChatFile'])->name('chat.file');
     });
 });

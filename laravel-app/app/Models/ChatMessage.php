@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -21,6 +22,13 @@ class ChatMessage extends Model
             'type' => 'string',
             'seen_at' => 'datetime',
         ];
+    }
+
+    protected function filePath(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->getRawOriginal('file_path') ? route('chat.file', ['chatId' => $this->chat_id, 'filename' => basename($this->getRawOriginal('file_path'))]) : null,
+        );
     }
 
     public function chat(): BelongsTo
