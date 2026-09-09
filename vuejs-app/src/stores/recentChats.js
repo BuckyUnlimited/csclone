@@ -1,3 +1,4 @@
+import axios from "axios";
 import { defineStore } from "pinia";
 import { useUserStore } from "@/stores/user";
 
@@ -82,8 +83,10 @@ export const useRecentChatsStore = defineStore("recentChats", {
           );
           if (index !== -1) {
             chat.messages[index] = message;
+            this.loadFile(chat.messages[index]); // reactive reference
           } else {
             chat.messages.push(message);
+            this.loadFile(chat.messages[chat.messages.length - 1]); // reactive reference
           }
         }
         this.sortChats();
@@ -97,11 +100,22 @@ export const useRecentChatsStore = defineStore("recentChats", {
         );
         if (index !== -1) {
           chat.messages[index] = message;
+          this.loadFile(chat.messages[index]); // reactive reference
         } else {
           chat.messages.push(message);
+          this.loadFile(chat.messages[chat.messages.length - 1]); // reactive reference
         }
         this.sortChats();
       }
+    },
+    async loadFile(message) {
+      if (message.type === "text" || message.fileBlob) {
+        return;
+      }
+      const response = await axios.get(message.file_path, {
+        responseType: "blob",
+      });
+      message.fileBlob = URL.createObjectURL(response.data);
     },
     removeChatMessage(chatId, messageId) {
       const chat = this.getChatById(chatId);
@@ -116,7 +130,6 @@ export const useRecentChatsStore = defineStore("recentChats", {
       const userStore = useUserStore();
       window.Echo.private(`ChatEvent.${userStore.id}`)
         .listen(".ChatCreated", async ({ chat }) => {
-          console.log("ChatCreated event received:", chat);
           this.syncChat(chat);
         })
         .listen(".ChatUpdated", async ({ chat }) => {
@@ -134,7 +147,6 @@ export const useRecentChatsStore = defineStore("recentChats", {
 
       window.Echo.private(`MessageEvent.${chatId}`)
         .listen(".MessageCreated", async ({ message }) => {
-          console.log("MessageCreated event received:", chatId, message);
           this.syncChatMessage(chatId, message);
         })
         .listen(".MessageUpdated", async ({ message }) => {
