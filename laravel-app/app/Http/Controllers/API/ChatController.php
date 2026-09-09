@@ -30,6 +30,7 @@ use App\Services\ImageClassService;
 use Illuminate\Support\Facades\DB;
 use Exception;
 use App\Http\Requests\Chat\CreateChatMessageRequest;
+use App\Http\Requests\Chat\CreateImageChatMessageRequest;
 use App\Http\Requests\Chat\CreateVoiceChatMessageRequest;
 use App\Http\Requests\Chat\DeleteChatMessageRequest;
 use App\Http\Requests\Chat\GetChatMessagesRequest;
@@ -712,6 +713,40 @@ class ChatController extends Controller
         return response([
             'message' => 'All messages marked as seen.'
         ], 200);
+    }
+
+    public function createImageChatMessage(CreateImageChatMessageRequest $request, $chatId)
+    {
+        $user = $request->user();
+
+        // Verify user is a member of this chat
+        $chat = Chat::where('id', $chatId)
+            ->whereHas('members', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        $file = $request->file('image');
+        $extension = $file->guessExtension() ?? 'jpg';
+        $filename = Str::uuid() . '.' . $extension;
+        $path = $file->storeAs("chat-files/{$chatId}", $filename, 'local');
+
+        $message = ChatMessage::create([
+            'chat_id' => $chatId,
+            'creator_id' => $user->id,
+            'type' => 'image',
+            'content' => 'Sent an image.',
+            'file_name' => $file->getClientOriginalName(),
+            'file_path' => $path,
+            'mime_type' => $file->getMimeType(),
+        ]);
+
+        broadcast(new MessageCreated($message, $chatId))->toOthers();
+
+        return response([
+            'message' => 'Image message created.',
+            'chat_message' => new ChatMessageResource($message->load('creator'))
+        ], 201);
     }
 
     public function createVoiceChatMessage(CreateVoiceChatMessageRequest $request, $chatId)
