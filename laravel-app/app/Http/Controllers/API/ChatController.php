@@ -2,6 +2,12 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Events\ChatCreated;
+use App\Events\ChatDeleted;
+use App\Events\ChatUpdated;
+use App\Events\MessageCreated;
+use App\Events\MessageDeleted;
+use App\Events\MessageUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Chat\AddGroupChatMemberRequest;
 use App\Http\Requests\Chat\CreateGroupChatRequest;
@@ -164,6 +170,11 @@ class ChatController extends Controller
                 'role' => 'member',
             ]);
 
+
+            foreach ($chat->members as $member) {
+                broadcast(new ChatCreated($chat, $member->user_id))->toOthers();
+            }
+
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
@@ -212,6 +223,10 @@ class ChatController extends Controller
                 'user_id' => $user->id,
                 'role' => 'admin',
             ]);
+
+            foreach ($chat->members as $member) {
+                broadcast(new ChatCreated($chat, $member->user_id))->toOthers();
+            }
 
             DB::commit();
         } catch (Exception $e) {
@@ -281,6 +296,11 @@ class ChatController extends Controller
         try {
             DB::beginTransaction();
             $chat->delete();
+
+            foreach ($chat->members as $member) {
+                broadcast(new ChatDeleted($chat->id, $member->user_id))->toOthers();
+            }
+
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
@@ -344,6 +364,10 @@ class ChatController extends Controller
 
             if ($shouldDeleteOldAvatar && $oldAvatarPath) {
                 $imageClass->delete($oldAvatarPath);
+            }
+
+            foreach ($chat->members as $member) {
+                broadcast(new ChatUpdated($chat, $member->user_id))->toOthers();
             }
 
             DB::commit();
@@ -600,6 +624,8 @@ class ChatController extends Controller
             'content' => $request->input('content'),
         ]);
 
+        broadcast(new MessageCreated($message, $chatId))->toOthers();
+
         return response([
             'message' => 'Message created.',
             'chat_message' => new ChatMessageResource($message->load('creator'))
@@ -628,6 +654,8 @@ class ChatController extends Controller
             'content' => $request->input('content'),
         ]);
 
+        broadcast(new MessageUpdated($message, $chatId))->toOthers();
+
         return response([
             'message' => 'Message updated.',
             'chat_message' => new ChatMessageResource($message->load('creator'))
@@ -652,6 +680,8 @@ class ChatController extends Controller
             ->firstOrFail();
 
         $message->delete();
+
+        broadcast(new MessageDeleted($message->id, $chatId))->toOthers();
 
         return response([
             'message' => 'Message deleted.'
