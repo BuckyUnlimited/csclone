@@ -69,3 +69,32 @@ export async function apiRemoveGroupChatMember(chatId, memberId) {
     APP_API_URL + `/chats/group/${chatId}/members/remove/${memberId}`,
   );
 }
+
+export async function apiGetChatMessages(chatId, params = {}) {
+  return await axios.get(APP_API_URL + `/chats/${chatId}/messages`, { params });
+}
+
+export async function apiCreateChatMessage(chatId, content) {
+  return await axios.post(APP_API_URL + `/chats/${chatId}/messages/create`, {
+    content,
+  });
+}
+
+export async function apiUpdateChatMessage(chatId, messageId, content) {
+  return await axios.patch(
+    APP_API_URL + `/chats/${chatId}/messages/update/${messageId}`,
+    {
+      content,
+    },
+  );
+}
+
+export async function apiDeleteChatMessage(chatId, messageId) {
+  return await axios.delete(
+    APP_API_URL + `/chats/${chatId}/messages/delete/${messageId}`,
+  );
+}
+
+export async function apiMarkAllChatMessagesAsSeen(chatId) {
+  return await axios.post(APP_API_URL + `/chats/${chatId}/messages/seen-all`);
+}
