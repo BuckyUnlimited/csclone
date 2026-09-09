@@ -1,4 +1,8 @@
 import { defineStore } from "pinia";
+import { useUserStore } from "@/stores/user";
+
+// Track subscribed chat channels (module-level, not in state)
+const subscribedChatMessageIds = new Set();
 
 export const useRecentChatsStore = defineStore("recentChats", {
   state: () => ({
@@ -38,7 +42,7 @@ export const useRecentChatsStore = defineStore("recentChats", {
       });
     },
     syncMultiChats(chats) {
-      chats.forEach((chat) => {
+      for (const chat of chats) {
         const index = this.chats.findIndex(
           (c) => Number(c.id) === Number(chat.id),
         );
@@ -47,7 +51,8 @@ export const useRecentChatsStore = defineStore("recentChats", {
         } else {
           this.chats.push(chat);
         }
-      });
+        this.subscribeToChatMessageEvents(chat.id); // Subscribe to chat message events for each chat
+      }
       this.sortChats();
     },
     syncChat(chat) {
@@ -60,11 +65,13 @@ export const useRecentChatsStore = defineStore("recentChats", {
       } else {
         this.chats.push(chat);
       }
+      this.subscribeToChatMessageEvents(chat.id); // Subscribe to chat message events for each chat
       this.sortChats();
     },
     removeChat(chatId) {
       // Remove chat from store
       this.chats = this.chats.filter((c) => Number(c.id) !== Number(chatId));
+      this.unsubscribeFromChatMessageEvents(chatId);
     },
     syncMultiChatMessages(chatId, messages) {
       const chat = this.getChatById(chatId);
@@ -103,6 +110,48 @@ export const useRecentChatsStore = defineStore("recentChats", {
           (m) => Number(m.id) !== Number(messageId),
         );
         this.sortChats();
+      }
+    },
+    subscribeToChatEvents() {
+      const userStore = useUserStore();
+      window.Echo.private(`ChatEvent.${userStore.id}`)
+        .listen(".ChatCreated", async ({ chat }) => {
+          console.log("ChatCreated event received:", chat);
+          this.syncChat(chat);
+        })
+        .listen(".ChatUpdated", async ({ chat }) => {
+          this.syncChat(chat);
+        })
+        .listen(".ChatDeleted", ({ chat_id }) => {
+          this.removeChat(chat_id);
+        });
+    },
+    subscribeToChatMessageEvents(chatId) {
+      // Check if already subscribed
+      if (subscribedChatMessageIds.has(chatId)) {
+        return;
+      }
+
+      window.Echo.private(`MessageEvent.${chatId}`)
+        .listen(".MessageCreated", async ({ message }) => {
+          console.log("MessageCreated event received:", chatId, message);
+          this.syncChatMessage(chatId, message);
+        })
+        .listen(".MessageUpdated", async ({ message }) => {
+          this.syncChatMessage(chatId, message);
+        })
+        .listen(".MessageDeleted", async ({ message_id }) => {
+          this.removeChatMessage(chatId, message_id);
+        });
+
+      // Mark as subscribed
+      subscribedChatMessageIds.add(chatId);
+    },
+
+    unsubscribeFromChatMessageEvents(chatId) {
+      if (subscribedChatMessageIds.has(chatId)) {
+        window.Echo.leave(`MessageEvent.${chatId}`);
+        subscribedChatMessageIds.delete(chatId);
       }
     },
   },
